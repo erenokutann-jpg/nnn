@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Kediko Date Run 🤍🐱🍸</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- Fontlar -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 15%, #2a0e28 0%, #120517 60%, #07010a 100%);
+      font-family: 'Outfit', sans-serif;
+      touch-action: manipulation;
+      overflow-x: hidden;
+    }
+
+    .pixel-font {
+      font-family: 'Press Start 2P', monospace;
+    }
+
+    .arcade-frame {
+      border: 2px solid rgba(244, 114, 182, 0.45);
+      box-shadow: 0 0 35px rgba(244, 63, 94, 0.25), inset 0 0 25px rgba(244, 114, 182, 0.12);
+    }
+
+    .scanlines {
+      position: relative;
+    }
+    .scanlines::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.22) 50%);
+      background-size: 100% 4px;
+      z-index: 20;
+      pointer-events: none;
+      opacity: 0.55;
+    }
+
+    .touch-btn:active {
+      transform: scale(0.92);
+      filter: brightness(1.2);
+    }
+  </style>
+</head>
+<body class="min-h-screen text-white flex flex-col items-center justify-between p-3 sm:p-5 relative">
+
+  <audio id="externalAudio" src="muzik.mp3" loop preload="auto"></audio>
+
+  <!-- Üst Bar -->
+  <header class="w-full max-w-md flex items-center justify-between py-2.5 px-4 bg-slate-900/85 backdrop-blur-md rounded-2xl border border-pink-500/35 z-30 mb-2 shadow-xl">
+    <div class="flex items-center gap-2">
+      <span class="text-2xl animate-pulse">🤍🐱</span>
+      <h1 class="pixel-font text-xs sm:text-sm text-pink-300 tracking-wider flex items-center gap-1.5">
+        KEDİKO DATE RUN
+      </h1>
+    </div>
+
+    <!-- Müzik Kontrolü -->
+    <button id="soundBtn" onclick="toggleAudio()" class="px-3.5 py-1.5 rounded-xl bg-pink-500/20 hover:bg-pink-500/30 border border-pink-500/40 text-xs font-semibold flex items-center gap-1.5 text-pink-300 transition active:scale-95 shadow-sm">
+      <span id="soundIcon">🔇</span>
+      <span id="soundLabel">Müzik 🎵</span>
+    </button>
+  </header>
+
+  <!-- Arcade Oyun Alanı -->
+  <main class="relative w-full max-w-md aspect-[4/5] sm:aspect-[4/4.5] max-h-[72vh] flex flex-col rounded-3xl overflow-hidden arcade-frame bg-[#14061e] scanlines shadow-2xl z-20">
+    
+    <!-- Üst Skor & Hedef -->
+    <div class="absolute top-0 left-0 right-0 z-30 flex justify-between items-center px-4 py-2.5 bg-black/65 backdrop-blur-sm border-b border-pink-500/25">
+      <div class="flex items-center gap-2">
+        <span class="pixel-font text-[10px] text-amber-300">SKOR:</span>
+        <span id="scoreDisplay" class="pixel-font text-xs text-white">0</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="pixel-font text-[9px] text-pink-300">HEDEF:</span>
+        <span class="pixel-font text-[10px] text-emerald-400">100 PUAN</span>
+      </div>
+    </div>
+
+    <!-- Oyun Çizim Canvas'ı -->
+    <canvas id="gameCanvas" class="w-full h-full block cursor-pointer"></canvas>
+
+    <!-- BAŞLANGIÇ EKRANI -->
+    <div id="startScreen" class="absolute inset-0 bg-black/85 backdrop-blur-md z-40 flex flex-col items-center justify-center p-6 text-center">
+      <div class="text-5xl mb-3 animate-bounce">🤍🐱🍸🍷🍽️</div>
+      <h2 class="pixel-font text-base text-pink-400 mb-2">KEDİKO DATE RUN</h2>
+      <p class="text-base text-pink-200 mb-5">Naz için puanları topla, planı sen belirle!</p>
+
+      <div class="bg-purple-950/75 border border-pink-500/30 rounded-2xl p-4 mb-6 max-w-xs text-sm text-gray-200 text-left space-y-2.5 shadow-inner">
+        <p class="text-emerald-400 font-bold flex items-center gap-1.5">
+          <span>✨</span> Toplanacaklar:
+        </p>
+        <p class="flex items-center justify-between pl-1"><span>🍸 Kokteyl</span> <b class="text-emerald-400">+10 Puan</b></p>
+        <p class="flex items-center justify-between pl-1"><span>🍷 Şarap</span> <b class="text-emerald-400">+10 Puan</b></p>
+        <p class="flex items-center justify-between pl-1"><span>🍽️ Yemek</span> <b class="text-emerald-400">+15 Puan</b></p>
+        
+        <p class="text-rose-400 font-bold pt-1.5 flex items-center gap-1.5">
+          <span>⚠️</span> Kaçılacaklar:
+        </p>
+        <p class="text-xs text-rose-200 pl-1 leading-relaxed">🤒 Hastalık • 🌧️ Yağmur • 🌊 Sel • 🥶 Soğuk Hava</p>
+      </div>
+
+      <button onclick="startGame()" class="pixel-font text-xs bg-gradient-to-r from-pink-500 via-rose-500 to-pink-600 hover:from-pink-600 hover:to-rose-600 text-white py-3.5 px-8 rounded-2xl shadow-lg shadow-pink-500/40 transition active:scale-95 border border-pink-300">
+        OYUNU BAŞLAT ▶
+      </button>
+      <p class="text-xs text-gray-400 mt-3">Hedef: 100 Puan</p>
+    </div>
+
+    <!-- GAME OVER EKRANI -->
+    <div id="gameOverScreen" class="hidden absolute inset-0 bg-black/90 backdrop-blur-md z-40 flex flex-col items-center justify-center p-6 text-center">
+      <div class="text-5xl mb-2" id="gameOverEmoji">🌧️</div>
+      <h2 class="pixel-font text-base text-rose-500 mb-2">OYUN BİTTİ!</h2>
+      <p id="gameOverReason" class="text-base text-gray-200 mb-3">Engele yakalandın!</p>
+      
+      <div class="bg-slate-900/85 border border-rose-500/30 rounded-2xl p-3 mb-6 w-full max-w-xs">
+        <span class="text-xs text-gray-400">Skorun:</span>
+        <p id="finalScore" class="pixel-font text-xl text-amber-300 mt-1">0</p>
+      </div>
+
+      <button onclick="restartGame()" class="pixel-font text-xs bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white py-3.5 px-8 rounded-2xl shadow-lg shadow-pink-500/30 transition active:scale-95 border border-pink-300">
+        TEKRAR DENE ↺
+      </button>
+    </div>
+
+    <!-- KAZANMA & SEÇİM MODALI -->
+    <div id="victoryScreen" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex flex-col items-center justify-between p-4 overflow-y-auto">
+      <div class="w-full flex flex-col items-center pt-1">
+        <div class="text-4xl mb-1 animate-bounce">🤍🐱 🍸 🍷 🍽️</div>
+        <h2 class="pixel-font text-xs sm:text-sm text-emerald-400 mb-0.5 text-center leading-relaxed">TEBRİKLER NAZ! KAZANDIN!</h2>
+        <p class="text-xs text-pink-200 mb-3 text-center">Planı ve zamanı tamamen sen belirle!</p>
+
+        <!-- Seçim Kartı -->
+        <div class="w-full max-w-xs bg-gradient-to-b from-white via-rose-50/95 to-pink-50 rounded-3xl p-4 shadow-2xl border-2 border-rose-300 text-slate-900 space-y-3">
+          
+          <!-- Plan Seçimi -->
+          <div>
+            <label class="block text-xs font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+              <span>✨</span> Canın Ne İster? (Plan Seçimi):
+            </label>
+            <div class="relative">
+              <select id="planSelect" class="w-full bg-white border-2 border-rose-300 hover:border-rose-400 focus:border-rose-500 rounded-2xl px-3 py-2.5 text-sm font-bold text-slate-800 focus:outline-none shadow-sm cursor-pointer">
+                <option value="Yemek & Tatlı 🍽️🍰">Yemek & Tatlı</option>
+                <option value="Yemek & Kokteyl 🍽️🍸" selected>Yemek & Kokteyl</option>
+                <option value="Yemek & Şarap 🍽️🍷">Yemek & Şarap</option>
+                <option value="Bira 🍻">Bira</option>
+                <option value="Kokteyl 🍸">Kokteyl</option>
+                <option value="Şarap 🍷">Şarap</option>
+                <option value="Yemek 🍽️">Yemek</option>
+                <option value="Tatlı 🍰">Tatlı</option>
+                <option value="Türk Kahvesi ☕">Türk Kahvesi</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Tarih Seçici -->
+          <div>
+            <label class="block text-xs font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+              <span>📅</span> Buluşma Tarihi:
+            </label>
+            <div class="relative">
+              <input type="date" id="dateInput" class="w-full bg-white border-2 border-rose-300 hover:border-rose-400 focus:border-rose-500 rounded-2xl px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none shadow-sm text-center">
+            </div>
+          </div>
+
+          <!-- Saat Seçici -->
+          <div>
+            <label class="block text-xs font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+              <span>⏰</span> Buluşma Saati:
+            </label>
+            <div class="relative">
+              <input type="time" id="timeInput" value="20:00" class="w-full bg-white border-2 border-rose-300 hover:border-rose-400 focus:border-rose-500 rounded-2xl px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none shadow-sm text-center">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Instagram DM Butonu -->
+      <div class="w-full max-w-xs pb-1 mt-3">
+        <button onclick="sendToInstagram()" class="w-full bg-gradient-to-r from-pink-500 via-rose-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-extrabold py-3.5 px-4 rounded-2xl shadow-xl shadow-pink-500/40 flex items-center justify-center gap-2 transition active:scale-95 text-sm sm:text-base border-2 border-pink-300">
+          <span class="text-xl">💬</span>
+          <span>Instagram DM ile Gönder</span>
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Mobil Kontroller -->
+  <footer class="w-full max-w-md flex justify-between items-center px-4 py-2 mt-2 gap-3 z-30">
+    <button id="leftTouchBtn" class="touch-btn flex-1 py-4 bg-gradient-to-b from-slate-800/95 to-slate-900 border-2 border-pink-500/40 rounded-2xl flex items-center justify-center text-pink-300 shadow-lg active:border-pink-400 backdrop-blur-sm">
+      <svg class="w-8 h-8 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+      </svg>
+    </button>
+    
+    <div class="text-[11px] text-gray-300 pixel-font text-center px-1 hidden sm:block">
+      ← veya [A] / [D] →
+    </div>
+
+    <button id="rightTouchBtn" class="touch-btn flex-1 py-4 bg-gradient-to-b from-slate-800/95 to-slate-900 border-2 border-pink-500/40 rounded-2xl flex items-center justify-center text-pink-300 shadow-lg active:border-pink-400 backdrop-blur-sm">
+      <svg class="w-8 h-8 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+      </svg>
+    </button>
+  </footer>
+
+  <script>
+    /* =====================================================================
+       1. MÜZİK VE SES EFEKTLERİ MOTORU
+       ===================================================================== */
+    let audioCtx = null;
+    let isMuted = true;
+    let synthPlaying = false;
+    let synthTimer = null;
+    const externalAudio = document.getElementById('externalAudio');
+
+    const melodyNotes = [
+      { f: 523.25, d: 0.16 },
+      { f: 659.25, d: 0.16 },
+      { f: 783.99, d: 0.16 },
+      { f: 987.77, d: 0.22 },
+      { f: 880.00, d: 0.16 },
+      { f: 783.99, d: 0.22 },
+      { f: 659.25, d: 0.16 },
+      { f: 587.33, d: 0.24 },
+      { f: 523.25, d: 0.16 },
+      { f: 587.33, d: 0.16 },
+      { f: 659.25, d: 0.16 },
+      { f: 880.00, d: 0.22 },
+      { f: 783.99, d: 0.18 },
+      { f: 659.25, d: 0.18 },
+      { f: 523.25, d: 0.32 },
+      { f: 0,      d: 0.12 }
+    ];
+    let noteIndex = 0;
+
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) {
+          audioCtx = new AudioContext();
+        }
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playTone(freq, duration, type = "triangle", vol = 0.05) {
+      if (!audioCtx || isMuted || freq === 0) return;
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    function playPickupSound() {
+      if (isMuted) return;
+      initAudio();
+      playTone(523.25, 0.08, 'sine', 0.08);
+      setTimeout(() => playTone(783.99, 0.12, 'triangle', 0.08), 60);
+    }
+
+    function playHazardSound() {
+      if (isMuted) return;
+      initAudio();
+      playTone(220, 0.15, 'sawtooth', 0.06);
+      setTimeout(() => playTone(146.83, 0.25, 'sawtooth', 0.06), 110);
+    }
+
+    function scheduleNextMelody() {
+      if (!synthPlaying || isMuted) return;
+      const note = melodyNotes[noteIndex];
+      if (note.f > 0) {
+        playTone(note.f, note.d * 0.9, 'triangle', 0.04);
+      }
+      noteIndex = (noteIndex + 1) % melodyNotes.length;
+      synthTimer = setTimeout(scheduleNextMelody, note.d * 1000);
+    }
+
+    function toggleAudio() {
+      initAudio();
+      isMuted = !isMuted;
+      const soundIcon = document.getElementById('soundIcon');
+
+      if (!isMuted) {
+        soundIcon.textContent = "🔊";
+        const promise = externalAudio.play();
+        if (promise !== undefined) {
+          promise.then(() => {}).catch(() => {
+            synthPlaying = true;
+            scheduleNextMelody();
+          });
+        }
+      } else {
+        soundIcon.textContent = "🔇";
+        externalAudio.pause();
+        synthPlaying = false;
+        if (synthTimer) clearTimeout(synthTimer);
+      }
+    }
+
+    /* =====================================================================
+       2. OYUN MOTORU & BEYAZ KEDİ (KEDİKO)
+       ===================================================================== */
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    const startScreen = document.getElementById('startScreen');
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    const victoryScreen = document.getElementById('victoryScreen');
+    const gameOverReason = document.getElementById('gameOverReason');
+    const gameOverEmoji = document.getElementById('gameOverEmoji');
+    const finalScore = document.getElementById('finalScore');
+
+    let gameRunning = false;
+    let score = 0;
+    const TARGET_SCORE = 100;
+    let animationFrameId = null;
+    let lastSpawnTime = 0;
+    const spawnInterval = 850;
+    let animTime = 0;
+
+    function resizeGameCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+    }
+    window.addEventListener('resize', resizeGameCanvas);
+    resizeGameCanvas();
+
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    const dateInput = document.getElementById('dateInput');
+    dateInput.value = todayStr;
+    dateInput.min = todayStr;
+
+    // Kediko Karakter Verisi
+    const player = {
+      x: 100,
+      y: 0,
+      width: 46,
+      height: 38,
+      speed: 6.8,
+      direction: 1,
+      isMoving: false
+    };
+
+    const keys = { left: false, right: false };
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
+      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
+      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
+    });
+
+    const leftTouchBtn = document.getElementById('leftTouchBtn');
+    const rightTouchBtn = document.getElementById('rightTouchBtn');
+
+    function attachTouchHandlers(btn, dirKey) {
+      const start = (e) => { e.preventDefault(); keys[dirKey] = true; };
+      const end = (e) => { e.preventDefault(); keys[dirKey] = false; };
+      btn.addEventListener('touchstart', start, { passive: false });
+      btn.addEventListener('touchend', end, { passive: false });
+      btn.addEventListener('mousedown', start);
+      btn.addEventListener('mouseup', end);
+      btn.addEventListener('mouseleave', end);
+    }
+    attachTouchHandlers(leftTouchBtn, 'left');
+    attachTouchHandlers(rightTouchBtn, 'right');
+
+    const TREAT_TYPES = [
+      { type: 'treat', name: 'Kokteyl', emoji: '🍸', points: 10, color: '#ec4899' },
+      { type: 'treat', name: 'Şarap', emoji: '🍷', points: 10, color: '#e11d48' },
+      { type: 'treat', name: 'Yemek', emoji: '🍽️', points: 15, color: '#f59e0b' }
+    ];
+
+    const HAZARD_TYPES = [
+      { type: 'hazard', name: 'Hastalık', emoji: '🤒', color: '#a855f7', message: 'Hastalık engeline denk geldik!' },
+      { type: 'hazard', name: 'Yağmur', emoji: '🌧️', color: '#60a5fa', message: 'Yağmura yakalandık!' },
+      { type: 'hazard', name: 'Sel', emoji: '🌊', color: '#3b82f6', message: 'Su birikintisine bastık!' },
+      { type: 'hazard', name: 'Soğuk Hava', emoji: '🥶', color: '#93c5fd', message: 'Hava çok soğuk, kaçamadık!' }
+    ];
+
+    let fallingItems = [];
+
+    function spawnItem() {
+      const isTreat = Math.random() < 0.65;
+      const template = isTreat 
+        ? TREAT_TYPES[Math.floor(Math.random() * TREAT_TYPES.length)]
+        : HAZARD_TYPES[Math.floor(Math.random() * HAZARD_TYPES.length)];
+
+      const size = 36;
+      const x = Math.random() * (canvas.width - size - 24) + 12;
+      const speed = 2.4 + Math.random() * 2.0;
+
+      fallingItems.push({
+        ...template,
+        x: x,
+        y: -size - 10,
+        size: size,
+        speed: speed,
+        rotation: 0,
+        rotSpeed: (Math.random() - 0.5) * 0.04
+      });
+    }
+
+    function drawWhiteCat(ctx, x, y, width, height, dir, isMoving, time) {
+      ctx.save();
+      ctx.translate(x + width / 2, y + height / 2);
+      ctx.scale(dir, 1);
+
+      const bounce = isMoving ? Math.sin(time * 16) * 2.5 : 0;
+      const legWalk = isMoving ? Math.sin(time * 18) * 3 : 0;
+      const tailWag = Math.sin(time * 14) * 0.45;
+
+      const pureWhite = '#ffffff';
+      const softShade = '#f1f5f9';
+      const pinkEar = '#f472b6';
+      const eyeColor = '#0284c7';
+      const collarColor = '#f43f5e';
+
+      // Kuyruk
+      ctx.save();
+      ctx.translate(-14, 2 + bounce);
+      ctx.rotate(-0.35 + tailWag);
+      ctx.strokeStyle = pureWhite;
+      ctx.lineWidth = 4.5;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.quadraticCurveTo(-11, -9, -6, -18);
+      ctx.stroke();
+      ctx.restore();
+
+      // Patiler
+      ctx.fillStyle = pureWhite;
+      ctx.beginPath();
+      ctx.arc(-8 + legWalk, 14 + bounce, 4.5, 0, Math.PI * 2);
+      ctx.arc(8 - legWalk, 14 + bounce, 4.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Gövde
+      ctx.fillStyle = pureWhite;
+      ctx.beginPath();
+      ctx.ellipse(-2, 3 + bounce, 15, 11, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Göğüs tüyü
+      ctx.fillStyle = softShade;
+      ctx.beginPath();
+      ctx.arc(4, 3 + bounce, 8, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Tasma & Zil
+      ctx.fillStyle = collarColor;
+      ctx.fillRect(7, -4 + bounce, 4, 3);
+      ctx.fillStyle = '#fbbf24';
+      ctx.beginPath();
+      ctx.arc(9, -0.5 + bounce, 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Sol Kulak
+      ctx.fillStyle = pureWhite;
+      ctx.beginPath();
+      ctx.moveTo(7, -13 + bounce);
+      ctx.lineTo(9, -23 + bounce);
+      ctx.lineTo(14, -15 + bounce);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = pinkEar;
+      ctx.beginPath();
+      ctx.moveTo(8.5, -14 + bounce);
+      ctx.lineTo(9.5, -20 + bounce);
+      ctx.lineTo(13, -15 + bounce);
+      ctx.closePath();
+      ctx.fill();
+
+      // Kafa
+      ctx.fillStyle = pureWhite;
+      ctx.beginPath();
+      ctx.arc(12, -10 + bounce, 10, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Sağ Kulak
+      ctx.fillStyle = pureWhite;
+      ctx.beginPath();
+      ctx.moveTo(13, -16 + bounce);
+      ctx.lineTo(17, -24 + bounce);
+      ctx.lineTo(20, -14 + bounce);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = pinkEar;
+      ctx.beginPath();
+      ctx.moveTo(14.5, -16.5 + bounce);
+      ctx.lineTo(17, -21.5 + bounce);
+      ctx.lineTo(19, -15 + bounce);
+      ctx.closePath();
+      ctx.fill();
+
+      // Göz
+      ctx.fillStyle = eyeColor;
+      ctx.beginPath();
+      ctx.arc(16, -10 + bounce, 2.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(16.5, -11.5 + bounce, 1.2, 1.2);
+
+      // Pembe Burun
+      ctx.fillStyle = '#f43f5e';
+      ctx.beginPath();
+      ctx.moveTo(21, -8 + bounce);
+      ctx.lineTo(23, -8 + bounce);
+      ctx.lineTo(22, -6.8 + bounce);
+      ctx.closePath();
+      ctx.fill();
+
+      // Bıyıklar
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(19, -7 + bounce);
+      ctx.lineTo(26, -9 + bounce);
+      ctx.moveTo(19, -6 + bounce);
+      ctx.lineTo(26, -5 + bounce);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    function updateGame(timestamp) {
+      if (!gameRunning) return;
+
+      animTime += 0.016;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const groundY = canvas.height - 34;
+      ctx.strokeStyle = '#f43f5e';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(0, groundY);
+      ctx.lineTo(canvas.width, groundY);
+      ctx.stroke();
+
+      ctx.fillStyle = '#1a0624';
+      ctx.fillRect(0, groundY + 1.5, canvas.width, canvas.height - groundY);
+
+      player.y = groundY - player.height + 2;
+      player.isMoving = false;
+
+      if (keys.left) {
+        player.x -= player.speed;
+        player.direction = -1;
+        player.isMoving = true;
+      }
+      if (keys.right) {
+        player.x += player.speed;
+        player.direction = 1;
+        player.isMoving = true;
+      }
+
+      if (player.x < 10) player.x = 10;
+      if (player.x + player.width > canvas.width - 10) player.x = canvas.width - player.width - 10;
+
+      drawWhiteCat(ctx, player.x, player.y, player.width, player.height, player.direction, player.isMoving, animTime);
+
+      if (timestamp - lastSpawnTime > spawnInterval) {
+        spawnItem();
+        lastSpawnTime = timestamp;
+      }
+
+      for (let i = fallingItems.length - 1; i >= 0; i--) {
+        const item = fallingItems[i];
+        item.y += item.speed;
+        item.rotation += item.rotSpeed;
+
+        ctx.save();
+        ctx.translate(item.x + item.size / 2, item.y + item.size / 2);
+        ctx.rotate(item.rotation);
+
+        ctx.fillStyle = item.type === 'hazard' ? 'rgba(76, 29, 149, 0.8)' : 'rgba(30, 27, 75, 0.8)';
+        ctx.strokeStyle = item.color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(-item.size / 2, -item.size / 2, item.size, item.size, 10);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.font = '20px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(item.emoji, 0, -1);
+
+        ctx.font = '9px "Press Start 2P", monospace';
+        ctx.fillStyle = item.color;
+        ctx.fillText(item.name, 0, item.size / 2 + 11);
+        ctx.restore();
+
+        const hitPadding = 8;
+        const playerBox = {
+          x: player.x + hitPadding,
+          y: player.y + hitPadding,
+          w: player.width - hitPadding * 2,
+          h: player.height - hitPadding
+        };
+
+        const itemBox = {
+          x: item.x + 4,
+          y: item.y + 4,
+          w: item.size - 8,
+          h: item.size - 8
+        };
+
+        const isColliding = (
+          playerBox.x < itemBox.x + itemBox.w &&
+          playerBox.x + playerBox.w > itemBox.x &&
+          playerBox.y < itemBox.y + itemBox.h &&
+          playerBox.y + playerBox.h > itemBox.y
+        );
+
+        if (isColliding) {
+          if (item.type === 'treat') {
+            score += item.points;
+            scoreDisplay.textContent = score;
+            playPickupSound();
+
+            if (score >= TARGET_SCORE) {
+              triggerVictory();
+              return;
+            }
+          } else {
+            triggerGameOver(item);
+            return;
+          }
+          fallingItems.splice(i, 1);
+          continue;
+        }
+
+        if (item.y > canvas.height + 30) {
+          fallingItems.splice(i, 1);
+        }
+      }
+
+      animationFrameId = requestAnimationFrame(updateGame);
+    }
+
+    /* =====================================================================
+       3. DURUM GEÇİŞLERİ
+       ===================================================================== */
+    function startGame() {
+      resizeGameCanvas();
+      score = 0;
+      scoreDisplay.textContent = "0";
+      fallingItems = [];
+      gameRunning = true;
+      player.x = canvas.width / 2 - player.width / 2;
+
+      startScreen.classList.add('hidden');
+      gameOverScreen.classList.add('hidden');
+      victoryScreen.classList.add('hidden');
+
+      lastSpawnTime = performance.now();
+      cancelAnimationFrame(animationFrameId);
+      animationFrameId = requestAnimationFrame(updateGame);
+    }
+
+    function restartGame() {
+      startGame();
+    }
+
+    function triggerGameOver(hazard) {
+      gameRunning = false;
+      cancelAnimationFrame(animationFrameId);
+      playHazardSound();
+
+      gameOverEmoji.textContent = hazard.emoji;
+      gameOverReason.textContent = hazard.message || `${hazard.name} engeline denk geldik!`;
+      finalScore.textContent = score;
+
+      gameOverScreen.classList.remove('hidden');
+    }
+
+    function triggerVictory() {
+      gameRunning = false;
+      cancelAnimationFrame(animationFrameId);
+
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 70,
+          spread: 75,
+          colors: ['#f43f5e', '#ec4899', '#fb7185', '#ffffff', '#fbbf24'],
+          origin: { y: 0.55 }
+        });
+        setTimeout(() => {
+          confetti({
+            particleCount: 50,
+            angle: 60,
+            spread: 55,
+            colors: ['#e11d48', '#fda4af', '#f43f5e'],
+            origin: { x: 0 }
+          });
+          confetti({
+            particleCount: 50,
+            angle: 120,
+            spread: 55,
+            colors: ['#e11d48', '#fda4af', '#f43f5e'],
+            origin: { x: 1 }
+          });
+        }, 300);
+      }
+
+      victoryScreen.classList.remove('hidden');
+    }
+
+    /* =====================================================================
+       4. INSTAGRAM DM ENTEGRASYONU
+       ===================================================================== */
+    function sendToInstagram() {
+      const planVal = document.getElementById('planSelect').value;
+      const dateVal = document.getElementById('dateInput').value;
+      const timeVal = document.getElementById('timeInput').value;
+
+      let dateFormatted = dateVal;
+      if (dateVal) {
+        const parts = dateVal.split('-');
+        if (parts.length === 3) {
+          dateFormatted = `${parts[2]}.${parts[1]}.${parts[0]}`;
+        }
+      }
+
+      const instagramUser = "eren_okutan";
+      const message = `Kediko Date Run'ı 100 puanla kazandım! 🤍🐱✨\n\nTercihim: ${planVal}\nZaman: ${dateFormatted} saat ${timeVal}`;
+
+      // Panoya kopyala ve Instagram DM'e aktar
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(message).catch(() => {});
+      }
+
+      window.location.href = `https://ig.me/m/${instagramUser}`;
+    }
+  </script>
+</body>
+</html>
